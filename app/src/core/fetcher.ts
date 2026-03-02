@@ -5,7 +5,7 @@ import { serializeKey } from './key'
  * Request deduplication manager
  */
 export class DeduplicationManager {
-  private pendingRequests = new Map<string, Promise<any>>()
+  private pendingRequests = new Map<string, Promise<unknown>>()
   private requestTimestamps = new Map<string, number>()
   
   constructor(private dedupingInterval: number = 2000) {}
@@ -26,7 +26,7 @@ export class DeduplicationManager {
     if (lastRequest && now - lastRequest < this.dedupingInterval) {
       const pendingRequest = this.pendingRequests.get(serializedKey)
       if (pendingRequest) {
-        return pendingRequest
+        return pendingRequest as Promise<Data>
       }
     }
     
@@ -217,7 +217,7 @@ export class FetchManager {
 /**
  * Utility function to create a fetcher from a URL
  */
-export function createFetcher<Data = any>(
+export function createFetcher<Data = unknown>(
   input: string | URL,
   init?: RequestInit
 ): Fetcher<Data> {
@@ -241,9 +241,9 @@ export function createFetcher<Data = any>(
 /**
  * Utility function to create a fetcher with custom error handling
  */
-export function createFetcherWithErrorHandler<Data = any>(
+export function createFetcherWithErrorHandler<Data = unknown>(
   fetcher: (url: string, options: RequestInit) => Promise<Response>,
-  errorHandler?: (error: any, key: Key) => Error
+  errorHandler?: (error: unknown, key: Key) => Error
 ): Fetcher<Data> {
   return async (key: Key, options: FetcherOptions) => {
     try {

@@ -5,9 +5,9 @@ import { serializeKey } from './key'
  * Event manager for handling SWR state changes
  */
 export class SWREventManager implements EventManager {
-  private listeners = new Map<string, Set<Callback>>()
+  private listeners = new Map<string, Set<Callback<unknown, unknown>>>()
 
-  on(event: string, callback: Callback): () => void {
+  on(event: string, callback: Callback<unknown, unknown>): () => void {
     if (!this.listeners.has(event)) {
       this.listeners.set(event, new Set())
     }
@@ -24,7 +24,7 @@ export class SWREventManager implements EventManager {
     }
   }
 
-  emit(event: string, ...args: any[]): void {
+  emit(event: string, ...args: unknown[]): void {
     const eventListeners = this.listeners.get(event)
     if (!eventListeners) return
     
@@ -40,7 +40,7 @@ export class SWREventManager implements EventManager {
     }
   }
 
-  off(event: string, callback: Callback): void {
+  off(event: string, callback: Callback<unknown, unknown>): void {
     const eventListeners = this.listeners.get(event)
     if (!eventListeners) return
     
@@ -75,25 +75,25 @@ export class SWREventManager implements EventManager {
  */
 export class KeyEventManager {
   private eventManager = new SWREventManager()
-  private keyListeners = new Map<string, Set<Callback>>()
+  private keyListeners = new Map<string, Set<Callback<unknown, unknown>>>()
 
-  subscribe(key: Key, callback: Callback): () => void {
+  subscribe<Data = unknown, Error = unknown>(key: Key, callback: Callback<Data, Error>): () => void {
     const serializedKey = serializeKey(key)
     
     // Add to key-specific listeners
     if (!this.keyListeners.has(serializedKey)) {
       this.keyListeners.set(serializedKey, new Set())
     }
-    this.keyListeners.get(serializedKey)!.add(callback)
+    this.keyListeners.get(serializedKey)!.add(callback as Callback<unknown, unknown>)
     
     // Also subscribe to global events for this key
-    const unsubscribeGlobal = this.eventManager.on(`key:${serializedKey}`, callback)
+    const unsubscribeGlobal = this.eventManager.on(`key:${serializedKey}`, callback as Callback<unknown, unknown>)
     
     // Return unsubscribe function
     return () => {
       const keyListeners = this.keyListeners.get(serializedKey)
       if (keyListeners) {
-        keyListeners.delete(callback)
+        keyListeners.delete(callback as Callback<unknown, unknown>)
         if (keyListeners.size === 0) {
           this.keyListeners.delete(serializedKey)
         }
@@ -102,7 +102,7 @@ export class KeyEventManager {
     }
   }
 
-  emit(key: Key, ...args: any[]): void {
+  emit(key: Key, ...args: unknown[]): void {
     const serializedKey = serializeKey(key)
     
     // Emit to key-specific listeners
@@ -123,11 +123,11 @@ export class KeyEventManager {
   }
 
   // Global events
-  on(event: string, callback: Callback): () => void {
+  on(event: string, callback: Callback<unknown, unknown>): () => void {
     return this.eventManager.on(event, callback)
   }
 
-  emitGlobal(event: string, ...args: any[]): void {
+  emitGlobal(event: string, ...args: unknown[]): void {
     this.eventManager.emit(event, ...args)
   }
 

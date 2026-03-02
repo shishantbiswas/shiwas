@@ -13,7 +13,7 @@ import { FetchManager } from './fetcher'
 /**
  * Mutation manager for handling data mutations with optimistic updates
  */
-export class MutationManager<Data = any, Error = any> {
+export class MutationManager<Data = unknown, Error = unknown> {
   private optimisticData = new Map<string, Data>()
   private rollbackData = new Map<string, Data | undefined>()
   
@@ -210,7 +210,7 @@ export class MutationManager<Data = any, Error = any> {
 /**
  * Utility function to create a mutator
  */
-export function createMutator<Data = any, Error = any>(
+export function createMutator<Data = unknown, Error = unknown>(
   fetchManager: FetchManager,
   config: SWRConfig<Data, Error>,
   onUpdate: (key: Key, entry: Partial<CacheEntry<Data, Error>>) => void,
@@ -222,7 +222,7 @@ export function createMutator<Data = any, Error = any>(
 /**
  * Higher-order function that creates a mutate function
  */
-export function createMutateFunction<Data = any, Error = any>(
+export function createMutateFunction<Data = unknown, Error = unknown>(
   mutationManager: MutationManager<Data, Error>
 ) {
   return (
@@ -237,7 +237,7 @@ export function createMutateFunction<Data = any, Error = any>(
 /**
  * Utility for creating optimistic mutations
  */
-export function createOptimisticMutation<Data = any>(
+export function createOptimisticMutation<Data = unknown>(
   currentData: Data,
   updateFn: (current: Data) => Data
 ): {
@@ -253,7 +253,7 @@ export function createOptimisticMutation<Data = any>(
 /**
  * Utility for creating async mutations
  */
-export function createAsyncMutation<Data = any>(
+export function createAsyncMutation<Data = unknown>(
   asyncFn: (currentData?: Data) => Promise<Data>
 ): MutatorCallback<Data> {
   return async (currentData?: Data) => {

@@ -21,7 +21,7 @@ import { resolveKey, serializeKey } from './key'
 /**
  * Main SWR Core implementation
  */
-export class SWRCoreImpl<Data = any, Error = any> implements SWRCore<Data, Error> {
+export class SWRCoreImpl<Data = unknown, Error = unknown> implements SWRCore<Data, Error> {
   private cache: MemoryCache<Data, Error>
   private eventManager: KeyEventManager
   private configManager: ConfigManager<Data, Error>
@@ -85,18 +85,42 @@ export class SWRCoreImpl<Data = any, Error = any> implements SWRCore<Data, Error
     const entry = this.cache.get(resolvedKey)
     
     // Subscribe to events
-    const unsubscribe = this.eventManager.subscribe(resolvedKey, callback)
+    const unsubscribe = this.eventManager.subscribe(resolvedKey, callback as Callback<unknown, unknown>)
     
-    // Start initial fetch if no data exists - do it asynchronously to avoid sync updates during subscription
+    const config = this.configManager.get()
+
+    // Start initial fetch if no data exists
     if (!entry) {
-      Promise.resolve().then(() => {
-        this.fetchInitialData(resolvedKey, fetcher)
-      })
-    } else {
-      const config = this.configManager.get()
       if (config.revalidateOnMount !== false) {
+        // Set initial loading state synchronously
+        this.handleUpdate(resolvedKey, {
+          isLoading: true,
+          isValidating: true
+        })
+      }
+      
+      // Trigger initial revalidation asynchronously, but and check for deduplication
+      setTimeout(() => {
+        // Only revalidate if not already validating/loading (deduplication)
+        const currentEntry = this.get(resolvedKey)
+        if (currentEntry?.isLoading && !this.fetchManager.isFetching(resolvedKey)) {
+          this.revalidate(resolvedKey, {
+            fetcher,
+            dedupe: true
+          })
+        } else if (!currentEntry) {
+           this.revalidate(resolvedKey, {
+            fetcher,
+            dedupe: true
+          })
+        }
+      }, 0)
+    } else {
+      // If data exists, revalidate if revalidateOnMount is not false
+      if (config.revalidateOnMount !== false) {
+        // Use Promise.resolve().then() for consistency with SWR behavior
         Promise.resolve().then(() => {
-          this.revalidate(resolvedKey, { fetcher })
+          this.revalidate(resolvedKey, { fetcher, dedupe: true })
         })
       }
     }
@@ -130,7 +154,7 @@ export class SWRCoreImpl<Data = any, Error = any> implements SWRCore<Data, Error
     const resolvedKey = resolveKey(key)
     if (!resolvedKey) return false
     
-    return this.revalidationManager.revalidate(resolvedKey, options)
+    return this.revalidationManager.revalidate(resolvedKey, options as RevalidateOptions<Data>)
   }
   
   /**
@@ -175,7 +199,7 @@ export class SWRCoreImpl<Data = any, Error = any> implements SWRCore<Data, Error
     // Restart interval revalidation for active keys
     for (const serializedKey of this.activeKeys) {
       try {
-        const key = JSON.parse(serializedKey)
+        const key = JSON.parse(serializedKey) as Key
         this.revalidationManager.startIntervalRevalidation(key)
       } catch {
         // Skip invalid keys
@@ -211,7 +235,7 @@ export class SWRCoreImpl<Data = any, Error = any> implements SWRCore<Data, Error
   getPerformanceStats(): {
     activeRequests: number
     pendingRequests: number
-    revalidations: any
+    revalidations: unknown
   } {
     return {
       activeRequests: this.fetchManager.getActiveCount(),
@@ -315,7 +339,7 @@ export class SWRCoreImpl<Data = any, Error = any> implements SWRCore<Data, Error
 /**
  * Create a new SWR instance
  */
-export function createSWR<Data = any, Error = any>(
+export function createSWR<Data = unknown, Error = unknown>(
   config?: Partial<SWRConfig<Data, Error>>
 ): SWRCore<Data, Error> {
   return new SWRCoreImpl<Data, Error>(config)

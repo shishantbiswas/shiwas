@@ -3,7 +3,7 @@ import type { Cache, CacheEntry, Key } from './types'
 /**
  * LRU Cache implementation with TTL support
  */
-export class LRUCache<Data = any, Error = any> implements Cache<Data, Error> {
+export class LRUCache<Data = unknown, Error = unknown> implements Cache<Data, Error> {
   private cache = new Map<string, CacheEntry<Data, Error>>()
   private maxSize: number
 
@@ -118,7 +118,7 @@ export class LRUCache<Data = any, Error = any> implements Cache<Data, Error> {
 /**
  * Memory cache with automatic cleanup
  */
-export class MemoryCache<Data = any, Error = any> extends LRUCache<Data, Error> {
+export class MemoryCache<Data = unknown, Error = unknown> extends LRUCache<Data, Error> {
   private cleanupInterval: NodeJS.Timeout | null = null
 
   constructor(maxSize: number = 1000, cleanupIntervalMs: number = 60000) {

@@ -2,9 +2,9 @@
  * Core types for the SWR implementation
  */
 
-export type Key = string | string[] | Record<string, any> | null | undefined
+export type Key = string | string[] | Record<string, unknown> | null | undefined
 
-export interface CacheEntry<Data = any, Error = any> {
+export interface CacheEntry<Data = unknown, Error = unknown> {
   data?: Data
   error?: Error
   isValidating: boolean
@@ -29,30 +29,30 @@ export interface FetcherOptions {
   signal: AbortSignal
 }
 
-export type Fetcher<Data = any> = (key: Key, options: FetcherOptions) => Promise<Data>
+export type Fetcher<Data = unknown> = (key: Key, options: FetcherOptions) => Promise<Data>
 
 // Support for simpler fetcher signatures like SWR
-export type BareFetcher<Data = any> = (...args: any[]) => Promise<Data>
-export type SWRFetcher<Data = any> = BareFetcher<Data> | Fetcher<Data>
+export type BareFetcher<Data = unknown> = (...args: unknown[]) => Promise<Data>
+export type SWRFetcher<Data = unknown> = BareFetcher<Data> | Fetcher<Data>
 
-export interface MutatorOptions<Data = any> {
+export interface MutatorOptions<Data = unknown> {
   revalidate?: boolean
   optimisticData?: Data
   populateCache?: boolean
   rollbackOnError?: boolean
 }
 
-export type MutatorCallback<Data = any> = (currentData?: Data) => Data | Promise<Data>
+export type MutatorCallback<Data = unknown> = (currentData?: Data) => Data | Promise<Data>
 
-export type MutatorValue<Data = any> = Data | MutatorCallback<Data> | undefined
+export type MutatorValue<Data = unknown> = Data | MutatorCallback<Data> | undefined
 
-export interface RevalidateOptions<Data = any> {
+export interface RevalidateOptions<Data = unknown> {
   dedupe?: boolean
   retryCount?: number
   fetcher?: Fetcher<Data>
 }
 
-export type Callback<Data = any, Error = any> = (
+export type Callback<Data = unknown, Error = unknown> = (
   data?: Data,
   error?: Error,
   isValidating?: boolean,
@@ -61,18 +61,18 @@ export type Callback<Data = any, Error = any> = (
 
 export type Unsubscribe = () => void
 
-export interface SWRConfig<Data = any, Error = any> extends CacheOptions {
+export interface SWRConfig<Data = unknown, Error = unknown> extends CacheOptions {
   fetcher?: Fetcher<Data>
   onSuccess?: (data: Data, key: Key) => void
   onError?: (error: Error, key: Key) => void
-  onErrorRetry?: (error: Error, key: Key, config: SWRConfig, revalidate: () => void, options: { retryCount: number }) => void
-  onLoadingSlow?: (key: Key, config: SWRConfig) => void
+  onErrorRetry?: (error: Error, key: Key, config: SWRConfig<Data, Error>, revalidate: () => void, options: { retryCount: number }) => void
+  onLoadingSlow?: (key: Key, config: SWRConfig<Data, Error>) => void
   isPaused?: () => boolean
   compare?: (a: Data | undefined, b: Data | undefined) => boolean
   fallback?: Record<string, Data>
 }
 
-export interface Cache<Data = any, Error = any> {
+export interface Cache<Data = unknown, Error = unknown> {
   get(key: Key): CacheEntry<Data, Error> | undefined
   set(key: Key, value: CacheEntry<Data, Error>): void
   delete(key: Key): void
@@ -82,16 +82,16 @@ export interface Cache<Data = any, Error = any> {
 }
 
 export interface EventManager {
-  on(event: string, callback: Callback): Unsubscribe
-  emit(event: string, ...args: any[]): void
-  off(event: string, callback: Callback): void
+  on(event: string, callback: Callback<unknown, unknown>): Unsubscribe
+  emit(event: string, ...args: unknown[]): void
+  off(event: string, callback: Callback<unknown, unknown>): void
 }
 
-export interface SWRCore<Data = any, Error = any> {
+export interface SWRCore<Data = unknown, Error = unknown> {
   get(key: Key): CacheEntry<Data, Error> | undefined
   subscribe(key: Key, callback: Callback<Data, Error>, fetcher?: Fetcher<Data>): Unsubscribe
   mutate(key: Key, data?: MutatorValue<Data>, options?: MutatorOptions<Data>): Promise<Data | undefined>
-  revalidate(key: Key, options?: RevalidateOptions): Promise<boolean>
+  revalidate(key: Key, options?: RevalidateOptions<Data>): Promise<boolean>
   delete(key: Key): void
   clear(): void
   updateConfig(config: Partial<SWRConfig<Data, Error>>): void

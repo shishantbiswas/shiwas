@@ -11,7 +11,7 @@ const SWR_CONFIG_KEY = Symbol('swr-config')
 /**
  * Enhanced useSWR composable for Vue
  */
-export function useSWR<Data = any, Error = any>(
+export function useSWR<Data = unknown, Error = unknown>(
   key: Key | null,
   fetcher?: SWRFetcher<Data> | null,
   config?: Partial<SWRConfiguration<Data, Error>>
@@ -29,7 +29,7 @@ export function useSWR<Data = any, Error = any>(
   // Update config if changed
   watch(mergedConfig, (newConfig) => {
     if (newConfig) {
-      swrRef.value.updateConfig(newConfig as any)
+      swrRef.value.updateConfig(newConfig as Partial<SWRConfiguration<Data, Error>> as any)
     }
   }, { deep: true })
 
@@ -42,11 +42,11 @@ export function useSWR<Data = any, Error = any>(
     if (f.length === 2) return f as Fetcher<Data>
     
     // Convert bare fetcher to core fetcher
-    return (k: Key, options: any) => {
+    return (k: Key, options: unknown) => {
       if (Array.isArray(k)) {
-        return (f as any)(...k)
+        return (f as (...args: unknown[]) => Promise<Data>)(...k)
       }
-      return (f as any)(k)
+      return (f as (arg: unknown) => Promise<Data>)(k)
     }
   })
 
@@ -76,12 +76,12 @@ export function useSWR<Data = any, Error = any>(
     // Subscribe to new key if available
     if (newKey && newFetcher) {
       const entry = swrRef.value.get(newKey)
-      data.value = entry?.data ?? mergedConfig.value?.fallbackData as any
-      error.value = entry?.error
+      data.value = (entry?.data ?? mergedConfig.value?.fallbackData) as Data | undefined
+      error.value = entry?.error as Error | undefined
       validating.value = entry?.isValidating ?? false
       loading.value = entry?.isLoading ?? false
       
-      unsubscribe = swrRef.value.subscribe(newKey, updateRefs as any, newFetcher as any)
+      unsubscribe = swrRef.value.subscribe(newKey, updateRefs as any, newFetcher as Fetcher<Data>)
     }
   }, { deep: true, immediate: true })
 
@@ -94,9 +94,9 @@ export function useSWR<Data = any, Error = any>(
 
   // Create mutate function
   const mutate = computed(() => 
-    (mutateData?: Data | Promise<Data> | ((currentData?: Data) => Data | Promise<Data>), options?: any) => {
+    (mutateData?: Data | Promise<Data> | ((currentData?: Data) => Data | Promise<Data>), options?: unknown) => {
       if (!key) return Promise.resolve(undefined)
-      return swrRef.value.mutate(key, mutateData, options)
+      return swrRef.value.mutate(key, mutateData, options as any)
     }
   )
 
@@ -108,11 +108,11 @@ export function useSWR<Data = any, Error = any>(
     if (data.value === undefined) {
       // In suspense mode, we need to trigger fetch and throw a promise
       const promise = new Promise<Data>((resolve, reject) => {
-        const u = swrRef.value.subscribe(key, (d: any, e: any) => {
+        const u = swrRef.value.subscribe(key, (d, e) => {
           if (e) {
             reject(e)
           } else if (d !== undefined) {
-            resolve(d)
+            resolve(d as Data)
           }
         })
         
@@ -134,8 +134,8 @@ export function useSWR<Data = any, Error = any>(
     error: error as any,
     isLoading: loading,
     isValidating: validating,
-    mutate: mutate.value,
-    revalidate: (options?: any) => swrRef.value.revalidate(key, options)
+    mutate: mutate.value as any,
+    revalidate: (options?: unknown) => swrRef.value.revalidate(key, options as any)
   }
 }
 
@@ -161,15 +161,15 @@ export const SWRConfig = defineComponent({
 /**
  * Interface type for configuration
  */
-export type SWRConfig<Data = any, Error = any> = SWRConfiguration<Data, Error>
+export type SWRConfig<Data = unknown, Error = unknown> = SWRConfiguration<Data, Error>
 
 /**
  * Hook for manual mutation
  */
-export function useSWRMutate<Data = any, Error = any>() {
+export function useSWRMutate<Data = unknown, Error = unknown>() {
   return computed(() => 
-    (key: Key, data?: Data | Promise<Data> | ((currentData?: Data) => Data | Promise<Data>), options?: any) => {
-      return globalSWR.mutate(key, data, options)
+    (key: Key, data?: Data | Promise<Data> | ((currentData?: Data) => Data | Promise<Data>), options?: unknown) => {
+      return globalSWR.mutate(key, data, options as any)
     }
   ).value
 }

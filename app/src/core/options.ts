@@ -45,8 +45,8 @@ export function mergeConfig<Data = any, Error = any>(
     ...defaultConfig,
     ...userConfig,
     // Ensure arrays and objects are properly merged
-    fallback: { ...defaultConfig.fallback, ...userConfig.fallback }
-  }
+    fallback: { ...defaultConfig.fallback, ...userConfig.fallback } as Record<string, Data>
+  } as SWRConfig<Data, Error>
 }
 
 /**

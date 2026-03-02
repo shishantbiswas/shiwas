@@ -64,7 +64,7 @@ export function useSWRInfinite<Data = any, Error = any>(
     for (const key of keys) {
       const entry = globalSWR.get(key)
       if (entry?.data !== undefined) {
-        pages.push(entry.data)
+        pages.push(entry.data as Data)
       } else {
         // If any page doesn't have data, return undefined
         return undefined
@@ -194,7 +194,7 @@ export function useSWRInfinite<Data = any, Error = any>(
             
             const entry = globalSWR.get(keyArgs)
             if (entry?.data) {
-              pages.push(entry.data)
+              pages.push(entry.data as Data)
             }
           }
           resolve([pages])
@@ -211,6 +211,7 @@ export function useSWRInfinite<Data = any, Error = any>(
     ...state,
     loading: state.isLoading,
     validating: state.isValidating,
+    error: state.error as Error,
     size,
     setSize: setSizeFunction,
     mutate

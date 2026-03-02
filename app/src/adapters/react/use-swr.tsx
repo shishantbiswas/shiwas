@@ -130,7 +130,7 @@ export function useSWR<Data = any, Error = any>(
           if (error) {
             reject(error)
           } else if (data !== undefined) {
-            resolve(data)
+            resolve(data as Data)
           }
         })
         

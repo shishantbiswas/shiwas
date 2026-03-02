@@ -1,3 +1,4 @@
+import { onDestroy } from 'svelte'
 import { writable, derived } from 'svelte/store'
 import { createSWR } from '../../core'
 import type { SWRConfig, SWRStores, SWRStore, Key, Fetcher, SWRFetcher } from './types'
@@ -8,13 +9,13 @@ const globalSWR = createSWR()
 /**
  * Enhanced useSWR store for Svelte
  */
-export function useSWR<Data = any, Error = any>(
+export function useSWR<Data = unknown, Error = unknown>(
   key: Key | null,
   fetcher?: SWRFetcher<Data> | null,
   config?: Partial<SWRConfig<Data, Error>>
 ): SWRStores<Data, Error> {
   // Get config from context (using a simple object for now)
-  const contextConfig = {} as any
+  const contextConfig = {} as Record<string, unknown>
   const mergedConfig = {
     ...contextConfig,
     ...config
@@ -34,8 +35,8 @@ export function useSWR<Data = any, Error = any>(
   if (key) {
     const entry = globalSWR.get(key)
     if (entry) {
-      initialData = entry.data
-      initialError = entry.error
+      initialData = entry.data as Data
+      initialError = entry.error as Error
       initialIsLoading = entry.isLoading
       initialIsValidating = entry.isValidating
     }
@@ -51,27 +52,37 @@ export function useSWR<Data = any, Error = any>(
   let unsubscribe: (() => void) | undefined
 
   const normalizedFetcher = fetcher ? (
-    fetcher.length === 2 ? fetcher : (k: Key, options: any) => {
+    fetcher.length === 2 ? fetcher as Fetcher<Data> : (k: Key, options: unknown) => {
       if (Array.isArray(k)) {
-        return (fetcher as any)(...k)
+        return (fetcher as (...args: unknown[]) => Promise<Data>)(...k)
       }
-      return (fetcher as any)(k)
+      return (fetcher as (arg: unknown) => Promise<Data>)(k)
     }
   ) : null
 
   if (key) {
-    unsubscribe = globalSWR.subscribe(key, (newData: any, newError: any, newIsValidating: any, newIsLoading: any) => {
-      dataStore.set(newData)
-      errorStore.set(newError)
+    unsubscribe = globalSWR.subscribe(key, (newData, newError, newIsValidating, newIsLoading) => {
+      dataStore.set(newData as Data)
+      errorStore.set(newError as Error)
       isValidatingStore.set(newIsValidating ?? false)
       isLoadingStore.set(newIsLoading ?? false)
-    }, normalizedFetcher as any)
+    }, normalizedFetcher as Fetcher<Data>)
+  }
+
+  // Cleanup on destroy if inside a component
+  try {
+    onDestroy(() => {
+      if (unsubscribe) unsubscribe()
+    })
+  } catch (e) {
+    // Ignore error if called outside component initialization
+    // (e.g. in tests without a component context)
   }
 
   // Create mutate function
-  const mutate = (mutateData?: Data | Promise<Data> | ((currentData?: Data) => Data | Promise<Data>), options?: any) => {
+  const mutate = (mutateData?: Data | Promise<Data> | ((currentData?: Data) => Data | Promise<Data>), options?: unknown) => {
     if (!key) return Promise.resolve(undefined)
-    return globalSWR.mutate(key, mutateData, options)
+    return globalSWR.mutate(key, mutateData, options as any)
   }
 
   return {
@@ -81,16 +92,16 @@ export function useSWR<Data = any, Error = any>(
     isValidating: { subscribe: isValidatingStore.subscribe },
     loading: { subscribe: isLoadingStore.subscribe },
     validating: { subscribe: isValidatingStore.subscribe },
-    mutate
+    mutate: mutate as any
   }
 }
 
 /**
  * Enhanced useSWR store with all state combined
  */
-export function useSWRStore<Data = any, Error = any>(
+export function useSWRStore<Data = unknown, Error = unknown>(
   key: Key | null,
-  fetcher?: Fetcher<Data> | null,
+  fetcher?: SWRFetcher<Data> | null,
   config?: Partial<SWRConfig<Data, Error>>
 ): SWRStore<Data, Error> {
   const stores = useSWR<Data, Error>(key, fetcher, config)
@@ -134,20 +145,21 @@ export function useSWRStore<Data = any, Error = any>(
     combinedStore.update((state: any) => ({ ...state, isLoading, loading: isLoading }))
   })
   
-  const unsubscribeValidating = stores.isValidating.subscribe((isValidating: any) => {
-    combinedStore.update((state: any) => ({ ...state, isValidating, validating: isValidating }))
+  const unsubscribeValidating = stores.isValidating.subscribe((isValidating) => {
+    combinedStore.update((state) => ({ ...state, isValidating, validating: isValidating }))
   })
 
   // Cleanup on destroy
-  const unsubscribeAll = () => {
-    unsubscribeData()
-    unsubscribeError()
-    unsubscribeLoading()
-    unsubscribeValidating()
+  try {
+    onDestroy(() => {
+      unsubscribeData()
+      unsubscribeError()
+      unsubscribeLoading()
+      unsubscribeValidating()
+    })
+  } catch (e) {
+    // Ignore
   }
-
-  // Manual cleanup for compatibility
-  unsubscribeAll()
 
   return {
     ...combinedStore,
@@ -158,9 +170,9 @@ export function useSWRStore<Data = any, Error = any>(
 /**
  * Hook for manual mutation
  */
-export function useSWRMutate<Data = any, Error = any>() {
-  return (key: Key, data?: Data | Promise<Data> | ((currentData?: Data) => Data | Promise<Data>), options?: any) => {
-    return globalSWR.mutate(key, data, options)
+export function useSWRMutate<Data = unknown, Error = unknown>() {
+  return (key: Key, data?: Data | Promise<Data> | ((currentData?: Data) => Data | Promise<Data>), options?: unknown) => {
+    return globalSWR.mutate(key, data, options as any)
   }
 }
 
